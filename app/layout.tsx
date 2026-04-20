@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Outfit, JetBrains_Mono } from "next/font/google";
+import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const outfit = Outfit({
+  variable: "--font-outfit",
   subsets: ["latin"],
   display: "swap",
 });
@@ -26,11 +27,25 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${inter.variable} ${jetbrainsMono.variable} h-full`}
+    <ClerkProvider
+      appearance={{
+        variables: {
+          colorPrimary: "#6d28d9",
+          colorBackground: "#09090b",
+          colorText: "#ffffff",
+          colorInputBackground: "#18181b",
+          colorInputText: "#ffffff",
+        },
+      }}
     >
-      <body>{children}</body>
-    </html>
+      <html
+        lang="en"
+        className={`${outfit.variable} ${jetbrainsMono.variable} dark antialiased h-full`}
+      >
+        <body className="h-full bg-zinc-950 text-white font-sans selection:bg-violet-500/30">
+          {children}
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

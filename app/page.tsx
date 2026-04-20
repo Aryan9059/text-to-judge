@@ -1,495 +1,181 @@
-"use client";
+import Link from "next/link";
+import { Show, UserButton, SignInButton, SignUpButton } from "@clerk/nextjs";
 
-import { useState, useCallback, useRef, useEffect } from "react";
-import dynamic from "next/dynamic";
-import IdeaInput from "@/components/IdeaInput";
-import ProblemPanel from "@/components/ProblemPanel";
-import OutputPanel from "@/components/OutputPanel";
-import type { GeneratedProblem } from "@/lib/groq";
-import type { JudgeResult } from "@/lib/judge";
-
-const CodeEditor = dynamic(() => import("@/components/CodeEditor"), {
-  ssr: false,
-  loading: () => (
-    <div
-      className="panel"
-      style={{
-        height: "100%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <div className="spinner" />
-    </div>
-  ),
-});
-
-const DEFAULT_CODE = `#include <bits/stdc++.h>
-using namespace std;
-
-int main() {
-    ios_base::sync_with_stdio(false);
-    cin.tie(NULL);
-    
-    
-    
-    return 0;
-}
-`;
-
-// ── Custom resizable hook ────────────────────────────────────────────────────
-function useResize(
-  initial: number,
-  min: number,
-  max: number,
-  direction: "horizontal" | "vertical"
-) {
-  const [size, setSize] = useState(initial);
-  const [dragging, setDragging] = useState(false);
-  const startRef = useRef<{ pos: number; size: number } | null>(null);
-
-  const onMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      setDragging(true);
-      startRef.current = {
-        pos: direction === "horizontal" ? e.clientX : e.clientY,
-        size,
-      };
-    },
-    [size, direction]
-  );
-
-  useEffect(() => {
-    if (!dragging) return;
-
-    const onMove = (e: MouseEvent) => {
-      if (!startRef.current) return;
-      const delta =
-        direction === "horizontal"
-          ? e.clientX - startRef.current.pos
-          : e.clientY - startRef.current.pos;
-      const next = Math.min(max, Math.max(min, startRef.current.size + delta));
-      setSize(next);
-    };
-
-    const onUp = () => setDragging(false);
-
-    document.addEventListener("mousemove", onMove);
-    document.addEventListener("mouseup", onUp);
-    return () => {
-      document.removeEventListener("mousemove", onMove);
-      document.removeEventListener("mouseup", onUp);
-    };
-  }, [dragging, direction, min, max]);
-
-  return { size, dragging, onMouseDown };
-}
-
-export default function Home() {
-  const [problem, setProblem] = useState<GeneratedProblem | null>(null);
-  const [code, setCode] = useState(DEFAULT_CODE);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isRunning, setIsRunning] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isReviewing, setIsReviewing] = useState(false);
-  const [isRegeneratingTests, setIsRegeneratingTests] = useState(false);
-  const [judgeResult, setJudgeResult] = useState<JudgeResult | null>(null);
-  const [consoleOutput, setConsoleOutput] = useState<string | null>(null);
-  const [reviewContent, setReviewContent] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  // ── Resizable split state (% of total width for left panel) ─────────────
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [leftPct, setLeftPct] = useState(45);
-  const [hDragging, setHDragging] = useState(false);
-  const hStart = useRef<{ x: number; pct: number } | null>(null);
-
-  const onHMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setHDragging(true);
-    hStart.current = { x: e.clientX, pct: leftPct };
-  };
-
-  useEffect(() => {
-    if (!hDragging) return;
-    const onMove = (e: MouseEvent) => {
-      if (!hStart.current || !containerRef.current) return;
-      const totalW = containerRef.current.getBoundingClientRect().width;
-      const delta = e.clientX - hStart.current.x;
-      const deltaPct = (delta / totalW) * 100;
-      setLeftPct(Math.min(75, Math.max(20, hStart.current.pct + deltaPct)));
-    };
-    const onUp = () => setHDragging(false);
-    document.addEventListener("mousemove", onMove);
-    document.addEventListener("mouseup", onUp);
-    return () => {
-      document.removeEventListener("mousemove", onMove);
-      document.removeEventListener("mouseup", onUp);
-    };
-  }, [hDragging]);
-
-  // ── Vertical split state for right column (% of remaining height) ────────
-  const rightColRef = useRef<HTMLDivElement>(null);
-  const [topPct, setTopPct] = useState(55);
-  const [vDragging, setVDragging] = useState(false);
-  const vStart = useRef<{ y: number; pct: number } | null>(null);
-
-  const onVMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setVDragging(true);
-    vStart.current = { y: e.clientY, pct: topPct };
-  };
-
-  useEffect(() => {
-    if (!vDragging) return;
-    const onMove = (e: MouseEvent) => {
-      if (!vStart.current || !rightColRef.current) return;
-      const totalH = rightColRef.current.getBoundingClientRect().height;
-      const delta = e.clientY - vStart.current.y;
-      const deltaPct = (delta / totalH) * 100;
-      setTopPct(Math.min(80, Math.max(20, vStart.current.pct + deltaPct)));
-    };
-    const onUp = () => setVDragging(false);
-    document.addEventListener("mousemove", onMove);
-    document.addEventListener("mouseup", onUp);
-    return () => {
-      document.removeEventListener("mousemove", onMove);
-      document.removeEventListener("mouseup", onUp);
-    };
-  }, [vDragging]);
-
-  const handleGenerate = useCallback(async (idea: string) => {
-    setIsGenerating(true);
-    setError(null);
-    setProblem(null);
-    setJudgeResult(null);
-    setConsoleOutput(null);
-    setReviewContent(null);
-    setCode(DEFAULT_CODE);
-
-    try {
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idea }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to generate problem");
-      }
-
-      setProblem(data.problem);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setIsGenerating(false);
-    }
-  }, []);
-
-  const handleRegenerateTests = useCallback(async () => {
-    if (!problem) return;
-    setIsRegeneratingTests(true);
-    setError(null);
-    setJudgeResult(null);
-    setConsoleOutput(null);
-
-    try {
-      const res = await fetch("/api/regenerate-tests", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ problem }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to regenerate test cases");
-      }
-
-      setProblem((prev) =>
-        prev ? { ...prev, sampleCases: data.sampleCases, hiddenCases: data.hiddenCases } : prev
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Test case regeneration failed");
-    } finally {
-      setIsRegeneratingTests(false);
-    }
-  }, [problem]);
-
-  const handleRun = useCallback(async () => {
-    if (!problem) return;
-    setIsRunning(true);
-    setConsoleOutput(null);
-    setJudgeResult(null);
-    setError(null);
-
-    try {
-      const res = await fetch("/api/run", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          code,
-          sampleCases: problem.sampleCases,
-          hiddenCases: [],
-          mode: "run",
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to run code");
-      }
-
-      setJudgeResult(data.result);
-
-      const output = data.result.results
-        .map((r: { index: number; compilationError?: string; actualOutput: string; stderr: string }) => {
-          if (r.compilationError) {
-            return `=== Compilation Error ===\n${r.compilationError}`;
-          }
-          let s = `=== Test Case ${r.index + 1} ===\n`;
-          if (r.actualOutput) s += r.actualOutput;
-          if (r.stderr) s += `\n[stderr] ${r.stderr}`;
-          return s;
-        })
-        .join("\n\n");
-
-      setConsoleOutput(output || "(no output)");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Run failed");
-      setConsoleOutput(
-        `Error: ${err instanceof Error ? err.message : "Run failed"}`
-      );
-    } finally {
-      setIsRunning(false);
-    }
-  }, [problem, code]);
-
-  const handleSubmit = useCallback(async () => {
-    if (!problem) return;
-    setIsSubmitting(true);
-    setJudgeResult(null);
-    setError(null);
-
-    try {
-      const res = await fetch("/api/run", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          code,
-          sampleCases: problem.sampleCases,
-          hiddenCases: problem.hiddenCases || [],
-          mode: "submit",
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Submission failed");
-      }
-
-      setJudgeResult(data.result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Submission failed");
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [problem, code]);
-
-  const handleReview = useCallback(async () => {
-    if (!problem || !code.trim()) return;
-    setIsReviewing(true);
-    setReviewContent(null);
-
-    try {
-      const res = await fetch("/api/review", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, problem }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Review failed");
-      }
-
-      setReviewContent(data.review);
-    } catch (err) {
-      setReviewContent(
-        `Error: ${err instanceof Error ? err.message : "Review failed"}`
-      );
-    } finally {
-      setIsReviewing(false);
-    }
-  }, [problem, code]);
-
+export default function LandingPage() {
   return (
-    <div
-      className={hDragging || vDragging ? "no-select-all" : ""}
-      style={{
-        height: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-        background: "var(--bg-primary)",
-      }}
-    >
-      {/* ── Header ──────────────────────────────────────────── */}
-      <header
-        className="glass-subtle"
-        style={{
-          padding: "10px 20px",
-          flexShrink: 0,
-          display: "flex",
-          alignItems: "center",
-          gap: 20,
-        }}
-      >
-        {/* Logo */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-          <span style={{ fontSize: "1.2rem" }}>⚖️</span>
-          <span
-            style={{
-              fontSize: "0.95rem",
-              fontWeight: 700,
-              color: "var(--text-primary)",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            Text<span style={{ color: "var(--accent-primary)" }}>Judge</span>
-          </span>
-        </div>
 
-        {/* Divider */}
-        <div style={{ width: 1, height: 22, background: "var(--surface-glass-border)", flexShrink: 0 }} />
-
-        {/* Idea input — takes remaining space */}
-        <div style={{ flex: 1 }}>
-          <IdeaInput onGenerate={handleGenerate} isLoading={isGenerating} />
-        </div>
-      </header>
-
-      {/* ── Error bar ──────────────────────────────────── */}
-      {error && (
-        <div
-          style={{
-            padding: "8px 20px",
-            background: "rgba(239, 71, 67, 0.08)",
-            borderBottom: "1px solid rgba(239, 71, 67, 0.2)",
-            color: "var(--accent-red)",
-            fontSize: "0.8125rem",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexShrink: 0,
-          }}
-        >
-          <span>⚠ {error}</span>
-          <button
-            onClick={() => setError(null)}
-            style={{
-              background: "none",
-              border: "none",
-              color: "var(--accent-red)",
-              cursor: "pointer",
-              fontSize: "1rem",
-              lineHeight: 1,
-              padding: "0 4px",
-            }}
-          >
-            ×
-          </button>
-        </div>
-      )}
-
-      {/* ── Main resizable workspace ───────────────────── */}
-      <main
-        ref={containerRef}
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "row",
-          minHeight: 0,
-          overflow: "hidden",
-        }}
-      >
-        {/* Left: Problem Panel */}
-        <div
-          style={{
-            width: `${leftPct}%`,
-            minHeight: 0,
-            overflow: "hidden",
-            flexShrink: 0,
-          }}
-        >
-          <ProblemPanel
-              problem={problem}
-              isLoading={isGenerating}
-              onRegenerateTests={handleRegenerateTests}
-              isRegeneratingTests={isRegeneratingTests}
-            />
-        </div>
-
-        {/* Horizontal resizer */}
-        <div
-          className={`resizer-h${hDragging ? " dragging" : ""}`}
-          onMouseDown={onHMouseDown}
-          title="Drag to resize"
-        />
-
-        {/* Right: Editor + Output stacked vertically with resizer */}
-        <div
-          ref={rightColRef}
-          style={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            minWidth: 0,
-            minHeight: 0,
-            overflow: "hidden",
-          }}
-        >
-          {/* Top: Code Editor */}
-          <div style={{ height: `${topPct}%`, minHeight: 0, overflow: "hidden" }}>
-            <CodeEditor
-              code={code}
-              onChange={setCode}
-              onRun={handleRun}
-              onSubmit={handleSubmit}
-              isRunning={isRunning}
-              isSubmitting={isSubmitting}
-              hasProblem={!!problem}
-            />
+    // Navbar
+    <div className="flex flex-col min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] font-sans antialiased">
+      <nav className="fixed top-0 left-0 right-0 z-50 glass-subtle h-14">
+        <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <svg viewBox="0 0 24 24" className="w-5 h-5 fill-[var(--accent-primary)]">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+            </svg>
+            <span className="text-base font-bold tracking-[0.05em] uppercase">
+              Text<span className="text-[var(--accent-primary)]">Judge</span>
+            </span>
           </div>
 
-          {/* Vertical resizer */}
-          <div
-            className={`resizer-v${vDragging ? " dragging" : ""}`}
-            onMouseDown={onVMouseDown}
-            title="Drag to resize"
-          />
+          <div className="flex items-center gap-4">
+            <Show when="signed-out">
+              <SignInButton mode="modal">
+                <button className="text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer capitalize">
+                  Log in
+                </button>
+              </SignInButton>
+              <SignUpButton mode="modal" fallbackRedirectUrl="/workspace">
+                <button className="btn btn-primary btn-sm rounded-[var(--radius-md)]">
+                  Get Started
+                </button>
+              </SignUpButton>
+            </Show>
+            <Show when="signed-in">
+              <Link
+                href="/workspace"
+                className="text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+              >
+                Go to Workspace
+              </Link>
+              <UserButton />
+            </Show>
+          </div>
+        </div>
+      </nav>
 
-          {/* Bottom: Output Panel */}
-          <div style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-            <OutputPanel
-              judgeResult={judgeResult}
-              consoleOutput={consoleOutput}
-              reviewContent={reviewContent}
-              isReviewing={isReviewing}
-              onRequestReview={handleReview}
-              hasProblem={!!problem}
-              hasCode={code.trim().length > 0}
-            />
+      {/* Hero section */}
+      <main className="flex-1 flex flex-col pt-40 pb-20 px-6 overflow-x-hidden">
+        <div className="max-w-4xl mx-auto w-full text-center space-y-8">
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.3]">
+            Turn vague coding ideas into <br />
+            <span className="text-[var(--accent-primary)]">structured challenges.</span>
+          </h1>
+
+          <p className="text-[var(--text-secondary)] text-base md:text-lg max-w-2xl mx-auto font-medium leading-relaxed">
+            Describe a problem in plain text. Let AI generate constraints and test cases. 
+            Run and verify your C++ solutions in a real-time local judge.
+          </p>
+
+          <div className="flex items-center justify-center gap-4 pt-4">
+            <Link
+              href="/workspace"
+              className="btn btn-primary btn-lg min-w-[160px] shadow-[var(--shadow-glow-primary)]"
+            >
+              Start Generating
+            </Link>
+            <button className="btn btn-ghost btn-lg min-w-[160px]">
+              Learn More
+            </button>
+          </div>
+        </div>
+
+        {/* App Mockup */}
+        <div className="max-w-5xl mx-auto w-full mt-24 relative group">
+          <div className="absolute -inset-1 bg-gradient-to-r from-[var(--accent-primary)] to-transparent opacity-10 blur-2xl group-hover:opacity-20 transition-opacity" />
+          <div className="relative panel bg-[var(--bg-primary)] border-[var(--surface-glass-border)] rounded-[var(--radius-lg)] shadow-[var(--shadow-lg)] overflow-hidden">
+             <div className="panel-header border-b-[var(--surface-glass-border)]">
+                <div className="flex gap-1.5">
+                   <div className="w-2.5 h-2.5 rounded-full bg-[var(--bg-elevated)]" />
+                   <div className="w-2.5 h-2.5 rounded-full bg-[var(--bg-elevated)]" />
+                   <div className="w-2.5 h-2.5 rounded-full bg-[var(--bg-elevated)]" />
+                </div>
+                <div className="px-3 py-1 rounded bg-[var(--bg-secondary)] text-[10px] font-mono text-[var(--accent-primary)]">
+                   judge.cpp
+                </div>
+                <div className="w-12 h-2" />
+             </div>
+             
+             <div className="grid grid-cols-12 h-64">
+                <div className="col-span-4 border-r border-[var(--surface-glass-border)] p-4 space-y-4">
+                   <div className="space-y-2">
+                      <div className="h-2 w-3/4 bg-[var(--bg-elevated)] rounded" />
+                      <div className="h-2 w-1/2 bg-[var(--bg-tertiary)] rounded" />
+                   </div>
+                   <div className="space-y-2 pt-4">
+                      <div className="h-1.5 w-full bg-[var(--bg-elevated)] rounded-full" />
+                      <div className="h-1.5 w-full bg-[var(--bg-elevated)] rounded-full" />
+                      <div className="h-1.5 w-3/4 bg-[var(--bg-elevated)] rounded-full" />
+                   </div>
+                </div>
+                <div className="col-span-8 p-4 bg-[var(--bg-secondary)] relative">
+                   <div className="font-mono text-xs text-[var(--text-muted)] space-y-1">
+                      <div className="flex gap-3"><span className="opacity-30">1</span><span className="text-[var(--accent-indigo)]">#include</span> &lt;iostream&gt;</div>
+                      <div className="flex gap-3"><span className="opacity-30">2</span><span className="text-[var(--accent-indigo)]">using namespace</span> std;</div>
+                      <div className="flex gap-3"><span className="opacity-30">3</span></div>
+                      <div className="flex gap-3"><span className="opacity-30">4</span><span className="text-[var(--accent-amber)]">int</span> main() {"{"}</div>
+                      <div className="flex gap-3"><span className="opacity-30">5</span>  cout &lt;&lt; <span className="text-[var(--accent-green)]">&quot;Ready.&quot;</span> &lt;&lt; endl;</div>
+                      <div className="flex gap-3"><span className="opacity-30">6</span>  <span className="text-[var(--accent-indigo)]">return</span> <span className="text-[var(--accent-orange)]">0</span>;</div>
+                      <div className="flex gap-3"><span className="opacity-30">7</span>{"}"}</div>
+                   </div>
+                   <div className="absolute top-4 right-4 animate-pulse">
+                      <div className="px-2 py-1 rounded bg-[var(--accent-green)]/10 text-[var(--accent-green)] text-[10px] font-bold border border-[var(--accent-green)]/20 uppercase tracking-widest">
+                         Accepted
+                      </div>
+                   </div>
+                </div>
+             </div>
+          </div>
+        </div>
+
+        {/* feature list */}
+        <div className="max-w-5xl mx-auto w-full mt-32 grid grid-cols-1 md:grid-cols-3 gap-12">
+          <div className="space-y-4">
+            <div className="w-10 h-10 rounded-lg bg-[var(--bg-secondary)] border border-[var(--surface-glass-border)] flex items-center justify-center">
+              <svg viewBox="0 0 24 24" className="w-5 h-5 stroke-[var(--accent-primary)] fill-none" strokeWidth="2">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold">Speed of Groq</h3>
+            <p className="text-sm text-[var(--text-secondary)] leading-relaxed font-medium">
+              Generate entire problem sets, constraints, and test scenarios in milliseconds with our high-speed AI integration.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <div className="w-10 h-10 rounded-lg bg-[var(--bg-secondary)] border border-[var(--surface-glass-border)] flex items-center justify-center">
+              <svg viewBox="0 0 24 24" className="w-5 h-5 stroke-[var(--accent-primary)] fill-none" strokeWidth="2">
+                <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" />
+                <polyline points="7.5 4.21 12 6.81 16.5 4.21" />
+                <polyline points="7.5 19.79 7.5 14.63 3 12" />
+                <polyline points="21 12 16.5 14.63 16.5 19.79" />
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                <line x1="12" y1="22.08" x2="12" y2="12" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold">Local C++ Judge</h3>
+            <p className="text-sm text-[var(--text-secondary)] leading-relaxed font-medium">
+              Compile and run code locally in your browser. Perfect for rapid prototyping and practice without server delays.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <div className="w-10 h-10 rounded-lg bg-[var(--bg-secondary)] border border-[var(--surface-glass-border)] flex items-center justify-center">
+              <svg viewBox="0 0 24 24" className="w-5 h-5 stroke-[var(--accent-primary)] fill-none" strokeWidth="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <path d="M9 12l2 2 4-4" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold">Precise Verdicts</h3>
+            <p className="text-sm text-[var(--text-secondary)] leading-relaxed font-medium">
+              Get detailed performance metrics and correctness verdicts. Supports multiple test cases per generation.
+            </p>
           </div>
         </div>
       </main>
+
+      {/* Footer */}
+      <footer className="py-12 border-t border-[var(--surface-glass-border)]">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
+          <p className="text-xs font-semibold text-[var(--text-muted)] tracking-wider uppercase">
+            © {new Date().getFullYear()} TextJudge. Zero-Latency Judge Platform.
+          </p>
+          <div className="flex gap-8">
+            <a href="#" className="text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors uppercase">GitHub</a>
+            <a href="#" className="text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors uppercase">Docs</a>
+            <a href="#" className="text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors uppercase">Privacy</a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
