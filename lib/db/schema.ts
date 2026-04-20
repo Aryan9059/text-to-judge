@@ -21,6 +21,8 @@ export const problems = pgTable("problems", {
   constraints: text("constraints").notNull(),
   sampleCases: jsonb("sample_cases").notNull(),
   hiddenCases: jsonb("hidden_cases"),
+  leetcodeLink: text("leetcode_link"),
+  gfgLink: text("gfg_link"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

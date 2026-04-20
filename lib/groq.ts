@@ -19,6 +19,8 @@ export interface GeneratedProblem {
   sampleCases: TestCase[];
   hiddenCases: TestCase[];
   hints: string[];
+  leetcodeLink?: string;
+  gfgLink?: string;
 }
 
 const SYSTEM_PROMPT = `You are an expert competitive programming problem setter. Given a vague coding idea, generate a complete, well-structured coding problem.
@@ -37,10 +39,15 @@ You MUST respond with ONLY valid JSON (no markdown, no code fences, no explanati
   "hiddenCases": [
     { "input": "actual input text", "output": "expected output text" }
   ],
-  "hints": ["Optional hint 1", "Optional hint 2"]
+  "hints": ["Optional hint 1", "Optional hint 2"],
+  "leetcodeLink": "https://leetcode.com/problems/problem-name/",
+  "gfgLink": "https://www.geeksforgeeks.org/problems/problem-name/"
 }
 
 Rules:
+- If the problem corresponds to a known challenge on LeetCode or GeeksforGeeks, provide the direct links in "leetcodeLink" and "gfgLink".
+- If no direct match is found, omit these fields or set them to null.
+- Provide ONLY high-quality, direct links. Avoid generic search links if possible.
 - Generate 2-3 sample cases (visible to user)
 - Generate 3-5 hidden cases (for judging, include edge cases and stress tests)
 - All inputs/outputs must be newline-separated plain text (stdin/stdout style)

@@ -48,6 +48,8 @@ export async function GET(
       constraints: problem.constraints.split("\n"),
       sampleCases: problem.sampleCases,
       hiddenCases: problem.hiddenCases,
+      leetcodeLink: problem.leetcodeLink,
+      gfgLink: problem.gfgLink,
     };
 
     return Response.json({ problem: formattedProblem });

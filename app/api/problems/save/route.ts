@@ -41,6 +41,8 @@ export async function POST(request: Request) {
           : problem.constraints,
         sampleCases: problem.sampleCases,
         hiddenCases: problem.hiddenCases || [],
+        leetcodeLink: problem.leetcodeLink,
+        gfgLink: problem.gfgLink,
       })
       .returning();
 
