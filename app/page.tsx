@@ -32,13 +32,20 @@ export default function LandingPage() {
             </Show>
             <Show when="signed-in">
               <Link
+                href="/dashboard"
+                className="text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+              >
+                Dashboard
+              </Link>
+              <Link
                 href="/workspace"
                 className="text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
               >
-                Go to Workspace
+                Workspace
               </Link>
               <UserButton />
             </Show>
+
           </div>
         </div>
       </nav>

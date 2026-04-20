@@ -7,6 +7,9 @@ import ProblemPanel from "@/components/ProblemPanel";
 import OutputPanel from "@/components/OutputPanel";
 import type { GeneratedProblem } from "@/lib/groq";
 import type { JudgeResult } from "@/lib/judge";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 const CodeEditor = dynamic(() => import("@/components/CodeEditor"), {
   ssr: false,
@@ -88,6 +91,17 @@ function useResize(
 }
 
 export default function Workspace() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center"><div className="spinner" /></div>}>
+      <WorkspaceContent />
+    </Suspense>
+  );
+}
+
+function WorkspaceContent() {
+  const searchParams = useSearchParams();
+  const problemIdFromUrl = searchParams.get("id");
+
   const [problem, setProblem] = useState<GeneratedProblem | null>(null);
   const [code, setCode] = useState(DEFAULT_CODE);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -99,6 +113,30 @@ export default function Workspace() {
   const [consoleOutput, setConsoleOutput] = useState<string | null>(null);
   const [reviewContent, setReviewContent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [dbProblemId, setDbProblemId] = useState<string | null>(null);
+
+  // Sync with URL ID
+  useEffect(() => {
+    if (problemIdFromUrl && !dbProblemId) {
+      const fetchProblem = async () => {
+        setIsGenerating(true);
+        setError(null);
+        try {
+          const res = await fetch(`/api/problems/${problemIdFromUrl}`);
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "Problem not found");
+          setProblem(data.problem);
+          setDbProblemId(problemIdFromUrl);
+        } catch (err: any) {
+          setError(err.message);
+        } finally {
+          setIsGenerating(false);
+        }
+      };
+      fetchProblem();
+    }
+  }, [problemIdFromUrl, dbProblemId]);
 
   // ── Resizable split state (% of total width for left panel) ─────────────
   const containerRef = useRef<HTMLDivElement>(null);
@@ -168,6 +206,7 @@ export default function Workspace() {
     setConsoleOutput(null);
     setReviewContent(null);
     setCode(DEFAULT_CODE);
+    setDbProblemId(null);
 
     try {
       const res = await fetch("/api/generate", {
@@ -270,6 +309,29 @@ export default function Workspace() {
     }
   }, [problem, code]);
 
+  const handleSaveProblem = useCallback(async () => {
+    if (!problem || dbProblemId) return;
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/problems/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ problem }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to save problem");
+
+      setDbProblemId(data.problemId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Saving failed");
+    } finally {
+      setIsSaving(false);
+    }
+  }, [problem, dbProblemId]);
+
   const handleSubmit = useCallback(async () => {
     if (!problem) return;
     setIsSubmitting(true);
@@ -285,6 +347,7 @@ export default function Workspace() {
           sampleCases: problem.sampleCases,
           hiddenCases: problem.hiddenCases || [],
           mode: "submit",
+          problemId: dbProblemId,
         }),
       });
 
@@ -300,7 +363,8 @@ export default function Workspace() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [problem, code]);
+  }, [problem, code, dbProblemId]);
+
 
   const handleReview = useCallback(async () => {
     if (!problem || !code.trim()) return;
@@ -370,6 +434,27 @@ export default function Workspace() {
         {/* Divider */}
         <div style={{ width: 1, height: 22, background: "var(--surface-glass-border)", flexShrink: 0 }} />
 
+        {/* Links */}
+        <div style={{ display: "flex", gap: 16, flexShrink: 0 }}>
+          <Link
+            href="/dashboard"
+            style={{
+              fontSize: "0.75rem",
+              fontWeight: 600,
+              color: "var(--text-muted)",
+              textDecoration: "none",
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+            }}
+            className="hover-text-primary transition-colors"
+          >
+            Dashboard
+          </Link>
+        </div>
+
+        {/* Divider */}
+        <div style={{ width: 1, height: 22, background: "var(--surface-glass-border)", flexShrink: 0 }} />
+
         {/* Idea input — takes remaining space */}
         <div style={{ flex: 1 }}>
           <IdeaInput onGenerate={handleGenerate} isLoading={isGenerating} />
@@ -430,11 +515,14 @@ export default function Workspace() {
           }}
         >
           <ProblemPanel
-              problem={problem}
-              isLoading={isGenerating}
-              onRegenerateTests={handleRegenerateTests}
-              isRegeneratingTests={isRegeneratingTests}
-            />
+            problem={problem}
+            isLoading={isGenerating}
+            onRegenerateTests={handleRegenerateTests}
+            isRegeneratingTests={isRegeneratingTests}
+            onSave={handleSaveProblem}
+            isSaving={isSaving}
+            isSaved={!!dbProblemId}
+          />
         </div>
 
         {/* Horizontal resizer */}

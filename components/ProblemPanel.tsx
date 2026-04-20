@@ -7,6 +7,9 @@ interface ProblemPanelProps {
   isLoading: boolean;
   onRegenerateTests: () => void;
   isRegeneratingTests: boolean;
+  onSave?: () => void;
+  isSaving?: boolean;
+  isSaved?: boolean;
 }
 
 function DifficultyBadge({ difficulty }: { difficulty: string }) {
@@ -70,6 +73,9 @@ export default function ProblemPanel({
   isLoading,
   onRegenerateTests,
   isRegeneratingTests,
+  onSave,
+  isSaving,
+  isSaved,
 }: ProblemPanelProps) {
   if (isLoading) {
     return (
@@ -143,59 +149,84 @@ export default function ProblemPanel({
       }}
     >
       <div className="panel-header">
-        <h3>Problem</h3>
-        {problem && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <DifficultyBadge difficulty={problem.difficulty} />
-            <span
-              style={{
-                fontSize: "0.7rem",
-                color: "var(--text-muted)",
-                fontFamily: "var(--font-mono)",
-                background: "var(--bg-tertiary)",
-                padding: "2px 7px",
-                borderRadius: 999,
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <h3>Problem</h3>
+          <DifficultyBadge difficulty={problem.difficulty} />
+        </div>
+        
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span
+            style={{
+              fontSize: "0.7rem",
+              color: "var(--text-muted)",
+              fontFamily: "var(--font-mono)",
+              background: "var(--bg-tertiary)",
+              padding: "2px 7px",
+              borderRadius: 999,
+              marginRight: 4,
+            }}
+          >
+            {(problem.sampleCases?.length || 0) + (problem.hiddenCases?.length || 0)} tests
+          </span>
+
+          {onSave && (
+            <button
+              className={`btn ${isSaved ? "btn-ghost" : "btn-primary"} btn-sm`}
+              onClick={onSave}
+              disabled={isSaving || isSaved}
+              style={{ 
+                fontSize: "0.75rem", 
+                gap: 5,
+                height: 28,
+                padding: "0 10px",
+                borderColor: isSaved ? "var(--accent-green)" : undefined,
+                color: isSaved ? "var(--accent-green)" : undefined
               }}
             >
-              {(problem.sampleCases?.length || 0) + (problem.hiddenCases?.length || 0)} tests
-            </span>
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={onRegenerateTests}
-              disabled={isRegeneratingTests}
-              id="regen-tests-btn"
-              title="Generate a fresh set of test cases including stress/TLE/MLE cases"
-              style={{ fontSize: "0.75rem", gap: 5 }}
-            >
-              {isRegeneratingTests ? (
-                <>
-                  <span className="spinner" />
-                  Regenerating...
-                </>
+              {isSaving ? (
+                <span className="spinner" style={{ width: 10, height: 10 }} />
+              ) : isSaved ? (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
               ) : (
-                <>
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M23 4v6h-6" />
-                    <path d="M1 20v-6h6" />
-                    <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
-                  </svg>
-                  Regenerate Tests
-                </>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                  <polyline points="17 21 17 13 7 13 7 21" />
+                  <polyline points="7 3 7 8 15 8" />
+                </svg>
               )}
+              {isSaving ? "Saving..." : isSaved ? "Saved" : "Save Problem"}
             </button>
-          </div>
-        )}
-        {!problem && <span />}
+          )}
+
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={onRegenerateTests}
+            disabled={isRegeneratingTests}
+            id="regen-tests-btn"
+            title="Generate a fresh set of test cases including stress/TLE/MLE cases"
+            style={{ fontSize: "0.75rem", gap: 5, height: 28 }}
+          >
+            {isRegeneratingTests ? (
+              <>
+                <span className="spinner" style={{ width: 10, height: 10 }} />
+                Regenerating...
+              </>
+            ) : (
+              <>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M23 4v6h-6" />
+                  <path d="M1 20v-6h6" />
+                  <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+                </svg>
+                Regen Tests
+              </>
+            )}
+          </button>
+        </div>
       </div>
+
       <div
         className="panel-body"
         style={{

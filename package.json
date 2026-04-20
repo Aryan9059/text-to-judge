@@ -12,6 +12,8 @@
     "@clerk/nextjs": "^7.2.3",
     "@monaco-editor/react": "^4.7.0",
     "@neondatabase/serverless": "^1.1.0",
+    "axios": "^1.15.1",
+    "date-fns": "^4.1.0",
     "dotenv": "^17.4.2",
     "drizzle-kit": "^0.31.10",
     "drizzle-orm": "^0.45.2",

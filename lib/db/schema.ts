@@ -1,4 +1,5 @@
 import { pgTable, text, timestamp, uuid, jsonb, integer } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -12,7 +13,10 @@ export const problems = pgTable("problems", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
-  description: text("description").notNull(),
+  description: text("description").notNull(), // maps to statement
+  difficulty: text("difficulty").default("Medium").notNull(),
+  inputFormat: text("input_format"),
+  outputFormat: text("output_format"),
   idea: text("idea").notNull(), // The original prompt
   constraints: text("constraints").notNull(),
   sampleCases: jsonb("sample_cases").notNull(),
@@ -31,3 +35,29 @@ export const submissions = pgTable("submissions", {
   memoryUsed: integer("memory_used"), // KB
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// Relations
+export const usersRelations = relations(users, ({ many }) => ({
+  problems: many(problems),
+  submissions: many(submissions),
+}));
+
+export const problemsRelations = relations(problems, ({ one, many }) => ({
+  user: one(users, {
+    fields: [problems.userId],
+    references: [users.id],
+  }),
+  submissions: many(submissions),
+}));
+
+export const submissionsRelations = relations(submissions, ({ one }) => ({
+  user: one(users, {
+    fields: [submissions.userId],
+    references: [users.id],
+  }),
+  problem: one(problems, {
+    fields: [submissions.problemId],
+    references: [problems.id],
+  }),
+}));
+

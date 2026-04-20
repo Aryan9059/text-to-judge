@@ -64,7 +64,6 @@ export async function judgeSubmission(
     const firstRun = await compileAndRun(
       code,
       casesToRun[0].input,
-      5000
     );
 
     if (firstRun.compilationError) {
@@ -101,23 +100,27 @@ export async function judgeSubmission(
       },
     ];
 
-    // Run remaining cases
-    for (let i = 1; i < casesToRun.length; i++) {
-      const tc = casesToRun[i];
-      const result = await compileAndRun(code, tc.input, 5000);
-      const verdict = getVerdict(result, tc.output);
+    // Run remaining cases in parallel
+    const remainingCases = casesToRun.slice(1);
+    const remainingResults = await Promise.all(
+      remainingCases.map(async (tc) => {
+        const result = await compileAndRun(code, tc.input);
+        const verdict = getVerdict(result, tc.output);
+        return {
+          index: tc.index,
+          verdict,
+          input: tc.input,
+          expectedOutput: tc.output,
+          actualOutput: result.stdout,
+          stderr: result.stderr,
+          executionTimeMs: result.executionTimeMs,
+          isHidden: tc.isHidden,
+        };
+      })
+    );
 
-      results.push({
-        index: tc.index,
-        verdict,
-        input: tc.input,
-        expectedOutput: tc.output,
-        actualOutput: result.stdout,
-        stderr: result.stderr,
-        executionTimeMs: result.executionTimeMs,
-        isHidden: tc.isHidden,
-      });
-    }
+    results.push(...remainingResults);
+
 
     const totalPassed = results.filter((r) => r.verdict === "AC").length;
     const firstFailed = results.find((r) => r.verdict !== "AC");

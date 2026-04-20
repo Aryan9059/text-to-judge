@@ -1,8 +1,4 @@
-import { exec, spawn } from "child_process";
-import { writeFile, unlink, mkdir } from "fs/promises";
-import { join } from "path";
-import { tmpdir } from "os";
-import { randomBytes } from "crypto";
+import axios from "axios";
 
 export interface ExecutionResult {
   stdout: string;
@@ -13,157 +9,97 @@ export interface ExecutionResult {
   executionTimeMs: number;
 }
 
-const MAX_OUTPUT_SIZE = 1024 * 64; // 64KB max output
-const DEFAULT_TIMEOUT = 5000; // 5 seconds
+const JUDGE0_URL = "https://ce.judge0.com";
 
-function generateId(): string {
-  return randomBytes(8).toString("hex");
+const LANGUAGE_MAP = {
+  cpp: 54,
+};
+
+function encode(str: string): string {
+  return Buffer.from(str || "").toString("base64");
 }
 
-async function ensureTempDir(): Promise<string> {
-  const dir = join(tmpdir(), "text-to-judge");
-  await mkdir(dir, { recursive: true });
-  return dir;
+function decode(str: string | null): string {
+  if (!str) return "";
+  return Buffer.from(str, "base64").toString("utf-8");
 }
 
-async function cleanup(...files: string[]): Promise<void> {
-  for (const file of files) {
-    try {
-      await unlink(file);
-    } catch {
-      // Ignore cleanup errors
+async function submitCode(code: string, input: string) {
+  const response = await axios.post(
+    `${JUDGE0_URL}/submissions?base64_encoded=true&wait=false`,
+    {
+      source_code: encode(code),
+      stdin: encode(input),
+      language_id: LANGUAGE_MAP.cpp,
+    },
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
     }
-  }
+  );
+
+  return response.data.token;
 }
 
-function compileCode(
-  sourcePath: string,
-  outputPath: string
-): Promise<{ success: boolean; error: string }> {
-  return new Promise((resolve) => {
-    exec(
-      `g++ -std=c++17 -O2 -o "${outputPath}" "${sourcePath}"`,
-      { timeout: 15000 },
-      (error, _stdout, stderr) => {
-        if (error) {
-          resolve({ success: false, error: stderr || error.message });
-        } else {
-          resolve({ success: true, error: "" });
-        }
-      }
+async function getResult(token: string) {
+  let attempts = 0;
+  const MAX_ATTEMPTS = 50;
+
+  while (attempts < MAX_ATTEMPTS) {
+    const res = await axios.get(
+      `${JUDGE0_URL}/submissions/${token}?base64_encoded=true`
     );
-  });
-}
 
-function runExecutable(
-  exePath: string,
-  input: string,
-  timeoutMs: number
-): Promise<{ stdout: string; stderr: string; exitCode: number | null; timedOut: boolean; executionTimeMs: number }> {
-  return new Promise((resolve) => {
-    const startTime = Date.now();
-    let stdout = "";
-    let stderr = "";
-    let timedOut = false;
-    let settled = false;
+    const result = res.data;
 
-    const child = spawn(exePath, [], {
-      stdio: ["pipe", "pipe", "pipe"],
-      windowsHide: true,
-    });
-
-    const timer = setTimeout(() => {
-      timedOut = true;
-      child.kill("SIGKILL");
-      // On Windows, also try taskkill
-      try {
-        exec(`taskkill /PID ${child.pid} /T /F`, { windowsHide: true });
-      } catch {
-        // Ignore
-      }
-    }, timeoutMs);
-
-    child.stdout.on("data", (data: Buffer) => {
-      if (stdout.length < MAX_OUTPUT_SIZE) {
-        stdout += data.toString();
-      }
-    });
-
-    child.stderr.on("data", (data: Buffer) => {
-      if (stderr.length < MAX_OUTPUT_SIZE) {
-        stderr += data.toString();
-      }
-    });
-
-    child.on("close", (code) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      resolve({
-        stdout: stdout.substring(0, MAX_OUTPUT_SIZE),
-        stderr: stderr.substring(0, MAX_OUTPUT_SIZE),
-        exitCode: code,
-        timedOut,
-        executionTimeMs: Date.now() - startTime,
-      });
-    });
-
-    child.on("error", (err) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      resolve({
-        stdout: "",
-        stderr: err.message,
-        exitCode: 1,
-        timedOut: false,
-        executionTimeMs: Date.now() - startTime,
-      });
-    });
-
-    // Write input to stdin
-    if (input) {
-      child.stdin.write(input);
+    if (result.status && result.status.id >= 3) {
+      return result;
     }
-    child.stdin.end();
-  });
+
+    attempts++;
+
+    // smoother polling (faster UX)
+    await new Promise((r) =>
+      setTimeout(r, Math.min(800, 200 + attempts * 100))
+    );
+  }
+
+  throw new Error("Execution timed out (polling limit reached)");
 }
 
 export async function compileAndRun(
   code: string,
-  input: string,
-  timeoutMs: number = DEFAULT_TIMEOUT
+  input: string
 ): Promise<ExecutionResult> {
-  const tempDir = await ensureTempDir();
-  const id = generateId();
-  const sourcePath = join(tempDir, `${id}.cpp`);
-  const exePath = join(tempDir, `${id}.exe`);
-
   try {
-    // Write source code
-    await writeFile(sourcePath, code, "utf-8");
-
-    // Compile
-    const compilation = await compileCode(sourcePath, exePath);
-    if (!compilation.success) {
-      return {
-        stdout: "",
-        stderr: "",
-        exitCode: 1,
-        timedOut: false,
-        compilationError: compilation.error,
-        executionTimeMs: 0,
-      };
-    }
-
-    // Run
-    const result = await runExecutable(exePath, input, timeoutMs);
+    const token = await submitCode(code, input);
+    const result = await getResult(token);
 
     return {
-      ...result,
-      compilationError: null,
+      stdout: decode(result.stdout),
+      stderr: decode(result.stderr),
+      exitCode: result.status.id === 3 ? 0 : 1,
+      timedOut: result.status.id === 5,
+      compilationError: result.compile_output
+        ? decode(result.compile_output)
+        : null,
+      executionTimeMs: result.time
+        ? parseFloat(result.time) * 1000
+        : 0,
     };
-  } finally {
-    await cleanup(sourcePath, exePath);
+  } catch (err: any) {
+    console.error("Executor error:", err.response?.data || err.message);
+
+    return {
+      stdout: "",
+      stderr: `Judge API Error: ${
+        err.response?.data?.message || err.message
+      }`,
+      exitCode: 1,
+      timedOut: false,
+      compilationError: null,
+      executionTimeMs: 0,
+    };
   }
 }
