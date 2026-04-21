@@ -10,6 +10,7 @@ interface ProblemPanelProps {
   onSave?: () => void;
   isSaving?: boolean;
   isSaved?: boolean;
+  onPublish?: () => void;
 }
 
 function DifficultyBadge({ difficulty }: { difficulty: string }) {
@@ -17,9 +18,20 @@ function DifficultyBadge({ difficulty }: { difficulty: string }) {
     difficulty === "Easy"
       ? "badge-easy"
       : difficulty === "Medium"
-      ? "badge-medium"
-      : "badge-hard";
+        ? "badge-medium"
+        : "badge-hard";
   return <span className={`badge ${cls}`}>{difficulty}</span>;
+}
+
+function PublicBadge() {
+  return (
+    <span className="badge" style={{ color: "var(--accent-indigo)", background: "rgba(77, 163, 255, 0.1)", fontSize: "0.6rem", gap: 3, border: "1px solid rgba(77, 163, 255, 0.2)" }}>
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
+      </svg>
+      Public
+    </span>
+  );
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -76,6 +88,7 @@ export default function ProblemPanel({
   onSave,
   isSaving,
   isSaved,
+  onPublish
 }: ProblemPanelProps) {
   if (isLoading) {
     return (
@@ -152,8 +165,9 @@ export default function ProblemPanel({
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <h3>Problem</h3>
           <DifficultyBadge difficulty={problem.difficulty} />
+          {problem.isPublic && <PublicBadge />}
         </div>
-        
+
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span
             style={{
@@ -174,8 +188,8 @@ export default function ProblemPanel({
               className={`btn ${isSaved ? "btn-ghost" : "btn-primary"} btn-sm`}
               onClick={onSave}
               disabled={isSaving || isSaved}
-              style={{ 
-                fontSize: "0.75rem", 
+              style={{
+                fontSize: "0.75rem",
                 gap: 5,
                 height: 28,
                 padding: "0 10px",
@@ -196,7 +210,22 @@ export default function ProblemPanel({
                   <polyline points="7 3 7 8 15 8" />
                 </svg>
               )}
-              {isSaving ? "Saving..." : isSaved ? "Saved" : "Save Problem"}
+              {isSaving ? "Saving..." : isSaved ? "Saved" : "Save"}
+            </button>
+          )}
+
+          {isSaved && onPublish && !problem.isPublic && (
+            <button
+              onClick={onPublish}
+              className="btn btn-sm btn-ghost bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 hover:text-indigo-300 border-indigo-500/20"
+              style={{ fontSize: "0.75rem", gap: 5, height: 28 }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                <polyline points="16 6 12 2 8 6" />
+                <line x1="12" y1="2" x2="12" y2="15" />
+              </svg>
+              Publish
             </button>
           )}
 

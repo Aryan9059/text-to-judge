@@ -64,6 +64,12 @@ export default function Dashboard() {
 
           <div className="flex items-center gap-6">
             <Link
+              href="/explore"
+              className="text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors uppercase tracking-wider"
+            >
+              Explore
+            </Link>
+            <Link
               href="/workspace"
               className="text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors uppercase tracking-wider"
             >

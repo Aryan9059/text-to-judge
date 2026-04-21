@@ -10,6 +10,7 @@ import type { JudgeResult } from "@/lib/judge";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import PublishModal from "@/components/PublishModal";
 
 const CodeEditor = dynamic(() => import("@/components/CodeEditor"), {
   ssr: false,
@@ -92,7 +93,7 @@ function useResize(
 
 export default function Workspace() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center"><div className="spinner" /></div>}>
+    <Suspense fallback={<div className="min-h-screen bg--bg-primary flex items-center justify-center"><div className="spinner" /></div>}>
       <WorkspaceContent />
     </Suspense>
   );
@@ -114,6 +115,7 @@ function WorkspaceContent() {
   const [reviewContent, setReviewContent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [publishOpen, setPublishOpen] = useState(false);
   const [dbProblemId, setDbProblemId] = useState<string | null>(null);
 
   // Sync with URL ID
@@ -332,6 +334,7 @@ function WorkspaceContent() {
     }
   }, [problem, dbProblemId]);
 
+
   const handleSubmit = useCallback(async () => {
     if (!problem) return;
     setIsSubmitting(true);
@@ -394,6 +397,31 @@ function WorkspaceContent() {
     }
   }, [problem, code]);
 
+  const handlePublish = async (data: any) => {
+    if (!dbProblemId) return;
+    try {
+      const res = await fetch("/api/problems/publish", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          problemId: dbProblemId,
+          ...data,
+        }),
+      });
+
+      if (res.ok) {
+        setPublishOpen(false);
+        // Refresh local state to show "Public" badge
+        setProblem(prev => prev ? { ...prev, isPublic: true } : prev);
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Failed to publish problem");
+    }
+  };
+
   return (
     <div
       className={hDragging || vDragging ? "no-select-all" : ""}
@@ -436,6 +464,20 @@ function WorkspaceContent() {
 
         {/* Links */}
         <div style={{ display: "flex", gap: 16, flexShrink: 0 }}>
+          <Link
+            href="/explore"
+            style={{
+              fontSize: "0.75rem",
+              fontWeight: 600,
+              color: "var(--text-muted)",
+              textDecoration: "none",
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+            }}
+            className="hover-text-primary transition-colors"
+          >
+            Explore
+          </Link>
           <Link
             href="/dashboard"
             style={{
@@ -522,6 +564,7 @@ function WorkspaceContent() {
             onSave={handleSaveProblem}
             isSaving={isSaving}
             isSaved={!!dbProblemId}
+            onPublish={() => setPublishOpen(true)}
           />
         </div>
 
@@ -578,6 +621,13 @@ function WorkspaceContent() {
           </div>
         </div>
       </main>
+
+      <PublishModal
+        open={publishOpen}
+        onClose={() => setPublishOpen(false)}
+        onConfirm={handlePublish}
+        problem={problem}
+      />
     </div>
   );
 }

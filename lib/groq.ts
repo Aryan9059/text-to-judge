@@ -21,6 +21,7 @@ export interface GeneratedProblem {
   hints: string[];
   leetcodeLink?: string;
   gfgLink?: string;
+  isPublic?: boolean;
 }
 
 const SYSTEM_PROMPT = `You are an expert competitive programming problem setter. Given a vague coding idea, generate a complete, well-structured coding problem.

@@ -1,5 +1,5 @@
-import { pgTable, text, timestamp, uuid, jsonb, integer } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { pgTable, text, timestamp, uuid, jsonb, integer, boolean } from "drizzle-orm/pg-core";
+import { relations , sql } from "drizzle-orm";
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -20,9 +20,13 @@ export const problems = pgTable("problems", {
   idea: text("idea").notNull(), // The original prompt
   constraints: text("constraints").notNull(),
   sampleCases: jsonb("sample_cases").notNull(),
-  hiddenCases: jsonb("hidden_cases"),
+  hiddenCases: jsonb("hidden_cases").default(sql`'[]'::jsonb`),
   leetcodeLink: text("leetcode_link"),
   gfgLink: text("gfg_link"),
+  isPublic: boolean("is_public").default(false).notNull(),
+  companyTags: jsonb("company_tags").default(sql`'[]'::jsonb`),
+tags: jsonb("tags").default(sql`'[]'::jsonb`),
+  userNotes: text("user_notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -37,7 +41,6 @@ export const submissions = pgTable("submissions", {
   memoryUsed: integer("memory_used"), // KB
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
-
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   problems: many(problems),

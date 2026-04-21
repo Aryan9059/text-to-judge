@@ -27,14 +27,16 @@ export async function GET(
 
     // fetch problem
     const problem = await db.query.problems.findFirst({
-      where: and(
-        eq(problems.id, id),
-        eq(problems.userId, dbUser.id)
-      ),
+      where: eq(problems.id, id),
     });
 
     if (!problem) {
       return Response.json({ error: "Problem not found" }, { status: 404 });
+    }
+
+    // Check ownership if not public
+    if (!problem.isPublic && problem.userId !== dbUser.id) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // map db fields back to generatedProblem format
@@ -50,6 +52,7 @@ export async function GET(
       hiddenCases: problem.hiddenCases,
       leetcodeLink: problem.leetcodeLink,
       gfgLink: problem.gfgLink,
+      isPublic: problem.isPublic,
     };
 
     return Response.json({ problem: formattedProblem });
