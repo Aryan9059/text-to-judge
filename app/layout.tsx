@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { Outfit, JetBrains_Mono } from "next/font/google";
+import { Poppins, JetBrains_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 
-const outfit = Outfit({
-  variable: "--font-outfit",
+const poppins = Poppins({
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-poppins",
   subsets: ["latin"],
   display: "swap",
 });
@@ -16,9 +17,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Text to Judge — AI-Powered Coding Challenges",
+  title: "JobPerfect — Master your coding interviews",
   description:
-    "Turn vague coding ideas into structured problems with test cases. Write C++, run locally, get instant verdicts.",
+    "Turn vague coding ideas into structured problems. Practice with a high-speed AI judge and get interview-ready.",
 };
 
 export default function RootLayout({
@@ -30,19 +31,19 @@ export default function RootLayout({
     <ClerkProvider
       appearance={{
         variables: {
-          colorPrimary: "#6d28d9",
-          colorBackground: "#09090b",
-          colorText: "#ffffff",
-          colorInputBackground: "#18181b",
-          colorInputText: "#ffffff",
+          colorPrimary: "#b5b5f6",
+          colorBackground: "#141318",
+          colorText: "#eff1f6",
+          colorInputBackground: "#1c1b22",
+          colorInputText: "#eff1f6",
         },
       }}
     >
       <html
         lang="en"
-        className={`${outfit.variable} ${jetbrainsMono.variable} dark antialiased h-full`}
+        className={`${poppins.variable} ${jetbrainsMono.variable} dark antialiased h-full`}
       >
-        <body className="h-full bg-zinc-950 text-white font-sans selection:bg-violet-500/30">
+        <body className="h-full bg-[var(--bg-primary)] text-[var(--text-primary)] font-sans antialiased selection:bg-[#b5b5f6]/30">
           {children}
         </body>
       </html>

@@ -3,29 +3,25 @@ import { Show, UserButton, SignInButton, SignUpButton } from "@clerk/nextjs";
 
 export default function LandingPage() {
   return (
-
-    // Navbar
     <div className="flex flex-col min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] font-sans antialiased">
-      <nav className="fixed top-0 left-0 right-0 z-50 glass-subtle h-14">
+      {/* Navbar */}
+      <nav className="fixed top-0 left-0 right-0 z-50 glass-subtle h-16">
         <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <svg viewBox="0 0 24 24" className="w-5 h-5 fill-[var(--accent-primary)]">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-            </svg>
-            <span className="text-base font-bold tracking-[0.05em] uppercase">
-              Text<span className="text-[var(--accent-primary)]">Judge</span>
+            <span className="text-xl font-bold tracking-tight">
+              Job<span className="Welcome-text font-extrabold">Perfect</span>
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-6">
             <Show when="signed-out">
               <SignInButton mode="modal">
-                <button className="text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer capitalize">
+                <button className="text-sm font-semibold text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer">
                   Log in
                 </button>
               </SignInButton>
               <SignUpButton mode="modal" fallbackRedirectUrl="/workspace">
-                <button className="btn btn-primary btn-sm rounded-[var(--radius-md)]">
+                <button className="btn btn-primary btn-sm">
                   Get Started
                 </button>
               </SignUpButton>
@@ -39,7 +35,7 @@ export default function LandingPage() {
               </Link>
               <Link
                 href="/workspace"
-                className="text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                className="text-sm font-semibold text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
               >
                 Workspace
               </Link>
@@ -51,71 +47,75 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero section */}
-      <main className="flex-1 flex flex-col pt-40 pb-20 px-6 overflow-x-hidden">
-        <div className="max-w-4xl mx-auto w-full text-center space-y-8">
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.3]">
-            Turn vague coding ideas into <br />
-            <span className="text-[var(--accent-primary)]">structured challenges.</span>
+      <main className="flex-1 flex flex-col pt-40 pb-20 px-6">
+        <div className="max-w-4xl mx-auto w-full text-center space-y-10">
+          <div className="inline-flex items-center px-3 py-1 rounded-full border border-[var(--surface-glass-border)] bg-white/5 text-[10px] font-bold uppercase tracking-widest text-[var(--accent-primary)] animate-fade-in">
+            New: AI-Powered Interview Prep
+          </div>
+          
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-[1.1] animate-fade-in delay-100">
+            Crush your coding <br />
+            <span className="Welcome-text">interviews.</span>
           </h1>
 
-          <p className="text-[var(--text-secondary)] text-base md:text-lg max-w-2xl mx-auto font-medium leading-relaxed">
-            Describe a problem in plain text. Let AI generate constraints and test cases. 
-            Run and verify your C++ solutions in a real-time local judge.
+          <p className="text-[var(--text-secondary)] text-lg md:text-xl max-w-2xl mx-auto font-medium leading-relaxed animate-fade-in delay-200">
+            Input vague problem ideas, get structured challenges. 
+            Write and test your solutions in a premium, zero-latency environment.
           </p>
 
-          <div className="flex items-center justify-center gap-4 pt-4">
+          <div className="flex items-center justify-center gap-6 pt-6 animate-fade-in delay-300">
             <Link
               href="/workspace"
-              className="btn btn-primary btn-lg min-w-[160px] shadow-[var(--shadow-glow-primary)]"
+              className="btn btn-primary btn-lg shadow-glow-primary"
             >
-              Start Generating
+              Start Practice
             </Link>
-            <button className="btn btn-ghost btn-lg min-w-[160px]">
-              Learn More
+            <button className="btn btn-ghost btn-lg">
+              View Tracks
             </button>
           </div>
         </div>
 
-        {/* App Mockup */}
-        <div className="max-w-5xl mx-auto w-full mt-24 relative group">
-          <div className="absolute -inset-1 bg-gradient-to-r from-[var(--accent-primary)] to-transparent opacity-10 blur-2xl group-hover:opacity-20 transition-opacity" />
-          <div className="relative panel bg-[var(--bg-primary)] border-[var(--surface-glass-border)] rounded-[var(--radius-lg)] shadow-[var(--shadow-lg)] overflow-hidden">
+        {/* Platform Mockup */}
+        <div className="max-w-5xl mx-auto w-full mt-28 relative animate-fade-in delay-500">
+          <div className="absolute -inset-4 bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-pink)] opacity-10 blur-3xl" />
+          <div className="relative panel bg-[var(--bg-primary)] border-[var(--surface-glass-border)] overflow-hidden shadow-2xl">
              <div className="panel-header border-b-[var(--surface-glass-border)]">
-                <div className="flex gap-1.5">
-                   <div className="w-2.5 h-2.5 rounded-full bg-[var(--bg-elevated)]" />
-                   <div className="w-2.5 h-2.5 rounded-full bg-[var(--bg-elevated)]" />
-                   <div className="w-2.5 h-2.5 rounded-full bg-[var(--bg-elevated)]" />
+                <div className="flex gap-2">
+                   <div className="w-3 h-3 rounded-full bg-red-500/20" />
+                   <div className="w-3 h-3 rounded-full bg-yellow-500/20" />
+                   <div className="w-3 h-3 rounded-full bg-green-500/20" />
                 </div>
-                <div className="px-3 py-1 rounded bg-[var(--bg-secondary)] text-[10px] font-mono text-[var(--accent-primary)]">
-                   judge.cpp
+                <div className="px-4 py-1 rounded-full bg-[var(--bg-tertiary)] text-[11px] font-mono text-[var(--accent-primary)]">
+                   solution.cpp
                 </div>
-                <div className="w-12 h-2" />
+                <div className="w-16 h-2" />
              </div>
              
-             <div className="grid grid-cols-12 h-64">
-                <div className="col-span-4 border-r border-[var(--surface-glass-border)] p-4 space-y-4">
-                   <div className="space-y-2">
-                      <div className="h-2 w-3/4 bg-[var(--bg-elevated)] rounded" />
-                      <div className="h-2 w-1/2 bg-[var(--bg-tertiary)] rounded" />
+             <div className="grid grid-cols-12 h-80">
+                <div className="col-span-4 border-r border-[var(--surface-glass-border)] p-6 space-y-6 bg-[var(--bg-secondary)]/30">
+                   <div className="space-y-3">
+                      <div className="h-2.5 w-3/4 bg-[var(--bg-tertiary)] rounded-full" />
+                      <div className="h-2.5 w-1/2 bg-[var(--bg-elevated)] rounded-full" />
                    </div>
-                   <div className="space-y-2 pt-4">
-                      <div className="h-1.5 w-full bg-[var(--bg-elevated)] rounded-full" />
-                      <div className="h-1.5 w-full bg-[var(--bg-elevated)] rounded-full" />
-                      <div className="h-1.5 w-3/4 bg-[var(--bg-elevated)] rounded-full" />
+                   <div className="space-y-3 pt-6">
+                      <div className="h-2 w-full bg-[var(--bg-tertiary)] rounded-full" />
+                      <div className="h-2 w-full bg-[var(--bg-tertiary)] rounded-full" />
+                      <div className="h-2 w-4/5 bg-[var(--bg-tertiary)] rounded-full" />
                    </div>
                 </div>
-                <div className="col-span-8 p-4 bg-[var(--bg-secondary)] relative">
-                   <div className="font-mono text-xs text-[var(--text-muted)] space-y-1">
-                      <div className="flex gap-3"><span className="opacity-30">1</span><span className="text-[var(--accent-indigo)]">#include</span> &lt;iostream&gt;</div>
-                      <div className="flex gap-3"><span className="opacity-30">2</span><span className="text-[var(--accent-indigo)]">using namespace</span> std;</div>
-                      <div className="flex gap-3"><span className="opacity-30">3</span></div>
-                      <div className="flex gap-3"><span className="opacity-30">4</span><span className="text-[var(--accent-amber)]">int</span> main() {"{"}</div>
-                      <div className="flex gap-3"><span className="opacity-30">5</span>  cout &lt;&lt; <span className="text-[var(--accent-green)]">&quot;Ready.&quot;</span> &lt;&lt; endl;</div>
-                      <div className="flex gap-3"><span className="opacity-30">6</span>  <span className="text-[var(--accent-indigo)]">return</span> <span className="text-[var(--accent-orange)]">0</span>;</div>
-                      <div className="flex gap-3"><span className="opacity-30">7</span>{"}"}</div>
+                <div className="col-span-8 p-6 bg-[var(--bg-secondary)] relative">
+                   <div className="font-mono text-sm text-[var(--text-muted)] space-y-2">
+                      <div className="flex gap-4"><span className="opacity-20">1</span><span className="text-[#b5b5f6]">#include</span> &lt;iostream&gt;</div>
+                      <div className="flex gap-4"><span className="opacity-20">2</span><span className="text-[#b5b5f6]">using namespace</span> std;</div>
+                      <div className="flex gap-4"><span className="opacity-20">3</span></div>
+                      <div className="flex gap-4"><span className="opacity-20">4</span><span className="text-[#f7bff4]">int</span> main() {"{"}</div>
+                      <div className="flex gap-4"><span className="opacity-20">5</span>  cout &lt;&lt; <span className="text-[#00d4bc]">&quot;Accepted&quot;</span> &lt;&lt; endl;</div>
+                      <div className="flex gap-4"><span className="opacity-20">6</span>  <span className="text-[#b5b5f6]">return</span> <span className="text-[#fbb342]">0</span>;</div>
+                      <div className="flex gap-4"><span className="opacity-20">7</span>{"}"}</div>
                    </div>
-                   <div className="absolute top-4 right-4 animate-pulse">
-                      <div className="px-2 py-1 rounded bg-[var(--accent-green)]/10 text-[var(--accent-green)] text-[10px] font-bold border border-[var(--accent-green)]/20 uppercase tracking-widest">
+                   <div className="absolute top-6 right-6">
+                      <div className="px-4 py-1.5 rounded-full bg-[#00d4bc]/10 text-[#00d4bc] text-xs font-bold border border-[#00d4bc]/20 uppercase tracking-widest shadow-lg">
                          Accepted
                       </div>
                    </div>
@@ -125,64 +125,61 @@ export default function LandingPage() {
         </div>
 
         {/* feature list */}
-        <div className="max-w-5xl mx-auto w-full mt-32 grid grid-cols-1 md:grid-cols-3 gap-12">
-          <div className="space-y-4">
-            <div className="w-10 h-10 rounded-lg bg-[var(--bg-secondary)] border border-[var(--surface-glass-border)] flex items-center justify-center">
-              <svg viewBox="0 0 24 24" className="w-5 h-5 stroke-[var(--accent-primary)] fill-none" strokeWidth="2">
-                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-              </svg>
+        <div className="max-w-6xl mx-auto w-full mt-40 pb-20 grid grid-cols-1 md:grid-cols-3 gap-16 px-6">
+          {[
+            {
+              title: "AI Track Generation",
+              desc: "Instant creation of professional coding tracks tailored to your target company or skill gap.",
+              icon: <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+            },
+            {
+              title: "Modern Judge Engine",
+              desc: "Lightning fast local execution with deterministic verdicts and detailed performance metrics.",
+              icon: <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" />
+            },
+            {
+              title: "Seamless Experience",
+              desc: "Zero-latency UI designed for focus. No server round-trips for compilation or testing.",
+              icon: <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            }
+          ].map((f, i) => (
+            <div key={i} className="group space-y-6 p-8 rounded-3xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04] transition-all">
+              <div className="w-12 h-12 rounded-2xl bg-[var(--bg-tertiary)] border border-[var(--surface-glass-border)] flex items-center justify-center group-hover:scale-110 transition-transform">
+                <svg viewBox="0 0 24 24" className="w-6 h-6 stroke-[var(--accent-primary)] fill-none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  {f.icon}
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold">{f.title}</h3>
+              <p className="text-[var(--text-secondary)] leading-relaxed font-medium">
+                {f.desc}
+              </p>
             </div>
-            <h3 className="text-lg font-bold">Speed of Groq</h3>
-            <p className="text-sm text-[var(--text-secondary)] leading-relaxed font-medium">
-              Generate entire problem sets, constraints, and test scenarios in milliseconds with our high-speed AI integration.
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <div className="w-10 h-10 rounded-lg bg-[var(--bg-secondary)] border border-[var(--surface-glass-border)] flex items-center justify-center">
-              <svg viewBox="0 0 24 24" className="w-5 h-5 stroke-[var(--accent-primary)] fill-none" strokeWidth="2">
-                <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" />
-                <polyline points="7.5 4.21 12 6.81 16.5 4.21" />
-                <polyline points="7.5 19.79 7.5 14.63 3 12" />
-                <polyline points="21 12 16.5 14.63 16.5 19.79" />
-                <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-                <line x1="12" y1="22.08" x2="12" y2="12" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-bold">Local C++ Judge</h3>
-            <p className="text-sm text-[var(--text-secondary)] leading-relaxed font-medium">
-              Compile and run code locally in your browser. Perfect for rapid prototyping and practice without server delays.
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <div className="w-10 h-10 rounded-lg bg-[var(--bg-secondary)] border border-[var(--surface-glass-border)] flex items-center justify-center">
-              <svg viewBox="0 0 24 24" className="w-5 h-5 stroke-[var(--accent-primary)] fill-none" strokeWidth="2">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                <path d="M9 12l2 2 4-4" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-bold">Precise Verdicts</h3>
-            <p className="text-sm text-[var(--text-secondary)] leading-relaxed font-medium">
-              Get detailed performance metrics and correctness verdicts. Supports multiple test cases per generation.
-            </p>
-          </div>
+          ))}
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="py-12 border-t border-[var(--surface-glass-border)]">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
-          <p className="text-xs font-semibold text-[var(--text-muted)] tracking-wider uppercase">
-            © {new Date().getFullYear()} TextJudge. Zero-Latency Judge Platform.
-          </p>
-          <div className="flex gap-8">
-            <a href="#" className="text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors uppercase">GitHub</a>
-            <a href="#" className="text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors uppercase">Docs</a>
-            <a href="#" className="text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors uppercase">Privacy</a>
+      <footer className="py-16 border-t border-[var(--surface-glass-border)] bg-[var(--bg-secondary)]/50">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-10">
+          <div className="flex flex-col items-center md:items-start gap-4">
+             <span className="text-xl font-bold">
+               Job<span className="Welcome-text font-extrabold">Perfect</span>
+             </span>
+             <p className="text-xs font-semibold text-[var(--text-muted)] tracking-widest uppercase">
+               Premium Judge Platform. Zero Latency.
+             </p>
           </div>
+          <div className="flex gap-12">
+            {["GitHub", "Tracks", "Docs", "Privacy"].map(link => (
+              <a key={link} href="#" className="text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors uppercase tracking-widest">{link}</a>
+            ))}
+          </div>
+          <p className="text-xs font-medium text-[var(--text-muted)]">
+            © {new Date().getFullYear()} JobPerfect.
+          </p>
         </div>
       </footer>
     </div>
   );
 }
+
